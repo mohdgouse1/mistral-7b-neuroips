@@ -18,7 +18,7 @@ import torch
 torch.set_float32_matmul_precision("high")
 
 from lit_gpt import GPT, Tokenizer, Config
-from lit_gpt.utils import lazy_load, quantization
+from lit_gpt.utils import lazy_load, gptq_quantization
 
 # Toy submission imports
 from helper import toysubmission_generate
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Configure the logging module
 logging.basicConfig(level=logging.INFO)
 
-quantize = "bnb.nf4-dq"  # 4-bit NormalFloat with Double-Quantization (see QLoRA paper)
+# quantize = "bnb.nf4-dq"  # 4-bit NormalFloat with Double-Quantization (see QLoRA paper)
 checkpoint_dir = Path("/submission/mistral-7b-deepspeed/Mistral-7B-v0.1/")
 precision = "bf16-true"  # weights and data in bfloat16 precision
 
@@ -49,11 +49,11 @@ with open(checkpoint_dir / "lit_config.json") as fp:
 
 checkpoint_path = checkpoint_dir / "lit_model.pth"
 logger.info(f"Loading model {str(checkpoint_path)!r} with {config.__dict__}")
-with fabric.init_module(empty_init=True), quantization(quantize):
+with fabric.init_module(empty_init=True):
     model = GPT(config)
 
 with lazy_load(checkpoint_path) as checkpoint:
-    model.load_state_dict(checkpoint, strict=quantize is None)
+    model.load_state_dict(checkpoint)
 
 model.eval()
 model = fabric.setup(model)
